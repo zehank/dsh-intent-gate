@@ -8,6 +8,28 @@ DeepSeek Harness 插件：**写操作前的意图闸门**。
 它自己不判断——判断规则在配套的 `skill/` 里（`SKILL.md` + `rules.md`）。
 **只装插件不装 skill 会把写操作无理由拦住**，两个要一起用。
 
+## 它拦什么
+
+| 情况 | 结果 |
+|---|---|
+| `write` / `edit` 写任何文件 | 要 EXEC 声明 |
+| `bash` 里有重定向 `> f` `>> f` `2> f` `&> f` | 要 EXEC 声明（`2>&1`、`a >= b` 不算） |
+| `bash` 的命令位是 `rm` `mv` `cp` `tee` `dd` `mkdir` `sed -i` `git commit` 等 | 要 EXEC 声明 |
+| 往 `skills/intent/log.tsv` **追加**记账（`>>` / `tee -a`） | 放行，不需要声明 |
+| 覆盖 / 删除 `log.tsv` | 仍然拦 |
+
+判据是「宁可漏不可误伤」：`python3 x.py`、`npm install` 这类间接写盘不拦。
+
+## 记账是自动的（v1.1.0）
+
+每次 `intent_declare` 插件自己往 `.dsh/skills/intent/log.tsv` 追加一行
+`时间 / 用户原话 / 判定 / note / 待定`，**不需要模型手写**——否则非 EXEC 轮会被闸门自己拦掉，
+规则永远蒸馏不出来。log 路径解析顺序：`INTENT_GATE_LOG` 环境变量 → 插件目录旁
+`../../skills/intent/log.tsv`（link 安装时即工作区） → `$PWD/.dsh/skills/intent/log.tsv`；
+目录不存在就静默跳过，不影响工具调用。
+
+每收到一条新用户消息，插件清空全部旧声明——避免上一轮的 EXEC 一直放行。
+
 ## 安装
 
 ```bash
