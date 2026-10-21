@@ -1,0 +1,3 @@
+- insert:
+    - id: intent-gate
+      name: '@local/intent-gate'
